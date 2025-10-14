@@ -24,7 +24,6 @@ def main():
         return
 
     logger.info("🔧 Construindo aplicação...")
-
     try:
         application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
     except Exception as e:
@@ -35,10 +34,17 @@ def main():
 
     application.add_handler(CommandHandler("start", handlers.start))
     application.add_handler(CommandHandler("help", handlers.help))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.processar_mensagem))
+
+    application.add_handler(MessageHandler(filters.PHOTO, handlers.processar_foto))
+    application.add_handler(MessageHandler(filters.Document.ALL, handlers.processar_documento))
+
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        handlers.processar_mensagem
+    ))
 
     logger.info("✅ Bot iniciado com sucesso!")
-    logger.info("💬 Aguardando mensagens...")
+    logger.info("💬 Aguardando mensagens, fotos e documentos...")
     logger.info("🛑 Pressione Ctrl+C para parar")
 
     application.run_polling()

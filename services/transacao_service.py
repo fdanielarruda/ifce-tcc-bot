@@ -1,11 +1,16 @@
 from typing import Dict, Any
 import re
 from services.api_service import APIService
+from services.ocr_service import OCRService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TransacaoService:
     def __init__(self):
         self.api_service = APIService()
+        self.ocr_service = OCRService()
 
     async def verificar_cadastro(self, filtro: str, valor: str) -> bool:
         unico = self.api_service.verificar_cadastro(filtro, valor)
@@ -20,6 +25,26 @@ class TransacaoService:
 
     async def processar_mensagem(self, texto: str, telegram_id: str) -> str:
         return await self._processar_transacao(texto, telegram_id)
+
+    async def processar_comprovante(
+            self,
+            arquivo_bytes: bytes,
+            tipo_mime: str,
+            telegram_id: str
+    ) -> str:
+        logger.info(f"📄 Processando comprovante do tipo: {tipo_mime}")
+
+        texto_extraido = self.ocr_service.processar_arquivo(arquivo_bytes, tipo_mime)
+
+        if not texto_extraido:
+            return "❌ Não foi possível extrair texto do comprovante. Tente enviar uma imagem mais nítida ou digite manualmente."
+
+        if len(texto_extraido) < 10:
+            return "⚠️ Pouco texto identificado no comprovante. Tente enviar uma imagem mais clara ou digite a transação manualmente."
+
+        logger.info(f"📝 Texto extraído ({len(texto_extraido)} caracteres):\n{texto_extraido[:200]}...")
+
+        return await self._processar_transacao(texto_extraido, telegram_id)
 
     async def _processar_transacao(
             self,

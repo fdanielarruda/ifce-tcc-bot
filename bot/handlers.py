@@ -43,8 +43,9 @@ class BotHandlers:
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensagem_boas_vindas = (
             "👋 Olá! Bem-vindo ao Gerenciador de Finanças!\n\n"
-            "Registre suas transações de forma simples. "
-            "Ex: `gastei 20 com hamburger` ou `recebi 2000 de salário`.\n\n"
+            "Registre suas transações de forma simples:\n"
+            "• Envie mensagem: `gastei 20 com hamburger`\n"
+            "• Ou envie foto/PDF do comprovante 📸\n\n"
         )
         await update.message.reply_text(mensagem_boas_vindas, parse_mode='Markdown')
         await self._checar_cadastro_e_iniciar_fluxo(update, context)
@@ -52,11 +53,13 @@ class BotHandlers:
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensagem_ajuda = (
             "ℹ️ **Como usar o bot**\n\n"
-            "Simplesmente envie uma mensagem descrevendo sua transação:\n\n"
-            "**Exemplos válidos:**\n"
+            "**Opção 1 - Texto:**\n"
             "• gastei 20 com hamburger\n"
             "• recebi 2000 de salário\n\n"
-            "**Lembre-se:** Você precisa estar cadastrado para usar a funcionalidade de transações. "
+            "**Opção 2 - Comprovante:**\n"
+            "• Envie foto do comprovante 📸\n"
+            "• Ou envie PDF do comprovante 📄\n\n"
+            "**Lembre-se:** Você precisa estar cadastrado. "
             "Digite `/start` para verificar seu status."
         )
         await update.message.reply_text(mensagem_ajuda, parse_mode='Markdown')
@@ -108,9 +111,10 @@ class BotHandlers:
                 context.user_data.pop('nome_candidato', None)
                 mensagem_sucesso = (
                     f"🎉 Cadastro concluído, **{nome}**!\n\n"
-                    "Agora você pode registrar suas transações a qualquer momento. "
-                    f"Seu email de acesso é: `{email}`.\n\n"
-                    "**Tente registrar sua primeira transação!**"
+                    "Agora você pode registrar suas transações:\n"
+                    "• Enviando mensagens de texto\n"
+                    "• Ou enviando comprovantes (foto/PDF) 📸\n\n"
+                    f"Seu email de acesso: `{email}`"
                 )
                 await update.message.reply_text(mensagem_sucesso, parse_mode='Markdown')
             else:
@@ -129,6 +133,89 @@ class BotHandlers:
 
         else:
             await update.message.reply_text(
-                "🤔 Estado do bot inesperado. Digite `/start` para recomeçar o processo de cadastro/uso."
+                "🤔 Estado do bot inesperado. Digite `/start` para recomeçar."
             )
             self._set_user_state(context, 0)
+
+    async def processar_foto(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        telegram_id = str(update.effective_user.id)
+        current_state = self._get_user_state(context)
+
+        if current_state != CADASTRADO:
+            await update.message.reply_text(
+                "🛑 Você precisa estar cadastrado para enviar comprovantes.\n"
+                "Digite `/start` para se cadastrar."
+            )
+            return
+
+        await update.message.chat.send_action(action="typing")
+        await update.message.reply_text("📸 Processando comprovante, aguarde...")
+
+        try:
+            foto = update.message.photo[-1]
+            arquivo = await context.bot.get_file(foto.file_id)
+
+            arquivo_bytes = await arquivo.download_as_bytearray()
+
+            resposta = await self.transacao_service.processar_comprovante(
+                arquivo_bytes=bytes(arquivo_bytes),
+                tipo_mime='image/jpeg',
+                telegram_id=telegram_id
+            )
+
+            await update.message.reply_text(resposta, parse_mode='Markdown')
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao processar foto: {e}", exc_info=True)
+            await update.message.reply_text(
+                "❌ Erro ao processar o comprovante. Tente novamente ou digite a transação manualmente."
+            )
+
+    async def processar_documento(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        telegram_id = str(update.effective_user.id)
+        current_state = self._get_user_state(context)
+
+        if current_state != CADASTRADO:
+            await update.message.reply_text(
+                "🛑 Você precisa estar cadastrado para enviar comprovantes.\n"
+                "Digite `/start` para se cadastrar."
+            )
+            return
+
+        documento = update.message.document
+        tipo_mime = documento.mime_type
+
+        tipos_suportados = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
+        if tipo_mime not in tipos_suportados:
+            await update.message.reply_text(
+                "⚠️ Tipo de arquivo não suportado.\n"
+                "Envie: PDF, JPG ou PNG"
+            )
+            return
+
+        if documento.file_size > 20 * 1024 * 1024:
+            await update.message.reply_text(
+                "⚠️ Arquivo muito grande. Tamanho máximo: 20MB"
+            )
+            return
+
+        await update.message.chat.send_action(action="upload_document")
+        await update.message.reply_text("📄 Processando documento, aguarde...")
+
+        try:
+            arquivo = await context.bot.get_file(documento.file_id)
+            arquivo_bytes = await arquivo.download_as_bytearray()
+
+            resposta = await self.transacao_service.processar_comprovante(
+                arquivo_bytes=bytes(arquivo_bytes),
+                tipo_mime=tipo_mime,
+                telegram_id=telegram_id
+            )
+
+            await update.message.reply_text(resposta, parse_mode='Markdown')
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao processar documento: {e}", exc_info=True)
+            await update.message.reply_text(
+                "❌ Erro ao processar o documento. Tente novamente ou digite a transação manualmente."
+            )
