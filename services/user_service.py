@@ -43,6 +43,29 @@ class UserService:
         logger.error(f"❌ Erro ao cadastrar usuário: {result.get('message')}")
         return result
 
+    async def delete_user(
+            self,
+            telegram_id: str,
+            email: str
+    ) -> Dict[str, Any]:
+        if not self.validate_email(email):
+            return {
+                'success': False,
+                'message': 'Email inválido'
+            }
+
+        result = await self.user_api.delete_user(telegram_id, email)
+
+        if result['success']:
+            logger.info(f"✅ Usuário deletado: {telegram_id}")
+            return {
+                'success': True,
+                'message': 'Conta excluída com sucesso'
+            }
+
+        logger.error(f"❌ Erro ao deletar usuário: {result.get('message')}")
+        return result
+
     @staticmethod
     def validate_email(email: str) -> bool:
         regex = r'^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'

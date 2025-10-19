@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_BASE_URL = os.getenv('API_BASE_URL', '')
+APP_BASE_URL = os.getenv('APP_BASE_URL', '')
+API_BASE_URL = APP_BASE_URL + '/api'
 API_TIMEOUT = 10
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')

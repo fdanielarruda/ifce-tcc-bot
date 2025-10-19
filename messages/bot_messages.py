@@ -1,3 +1,5 @@
+import config
+
 class BotMessages:
     @staticmethod
     def get_welcome_back_message(name: str) -> str:
@@ -8,7 +10,7 @@ class BotMessages:
             f"• Envie uma mensagem de texto com a transação\n"
             f"• Envie uma foto do comprovante\n"
             f"• Envie um PDF com a nota fiscal\n\n"
-            f"Use /help para ver todos os comandos disponíveis."
+            f"Use /ajuda para ver todos os comandos disponíveis."
         )
 
     @staticmethod
@@ -47,6 +49,8 @@ class BotMessages:
             f"• Enviar PDFs de notas fiscais\n\n"
             f"Exemplo de mensagem:\n"
             f"'Comprei um café por R$ 8,50 na padaria'\n\n"
+            f"🌐 Para gerenciar transações e ter acesso a relatórios, acesse:\n"
+            f"{config.APP_BASE_URL}\n\n"
             f"Digite /help para ver mais informações."
         )
 
@@ -71,7 +75,8 @@ class BotMessages:
             "📚 Ajuda - Bot de Finanças\n\n"
             "Comandos disponíveis:\n"
             "/start - Inicia o bot e faz cadastro\n"
-            "/help - Mostra esta mensagem de ajuda\n\n"
+            "/ajuda - Mostra esta mensagem de ajuda\n"
+            "/exclusao - Exclui sua conta permanentemente\n\n"
             "Como registrar transações:\n\n"
             "1️⃣ Mensagem de texto\n"
             "Envie uma descrição da sua transação:\n"
@@ -106,4 +111,47 @@ class BotMessages:
             "Envie apenas:\n"
             "• Imagens (JPG, PNG)\n"
             "• Documentos PDF"
+        )
+
+    @staticmethod
+    def get_delete_account_confirmation() -> str:
+        return (
+            "⚠️ EXCLUSÃO DE CONTA\n\n"
+            "Você está prestes a excluir sua conta permanentemente.\n\n"
+            "⚠️ Esta ação NÃO pode ser desfeita!\n"
+            "⚠️ Todas as suas transações serão perdidas!\n\n"
+            "Para confirmar, digite seu email cadastrado:"
+        )
+
+    @staticmethod
+    def get_delete_account_cancelled() -> str:
+        return (
+            "✅ Exclusão cancelada.\n\n"
+            "Sua conta permanece ativa."
+        )
+
+    @staticmethod
+    def get_delete_account_success() -> str:
+        return (
+            "✅ Conta excluída com sucesso!\n\n"
+            "Todos os seus dados foram removidos.\n\n"
+            "Foi um prazer ter você conosco. "
+            "Se quiser voltar, use /start para criar uma nova conta."
+        )
+
+    @staticmethod
+    def get_delete_account_error(message: str) -> str:
+        return (
+            f"❌ Erro ao excluir conta.\n\n"
+            f"Detalhes: {message}\n\n"
+            f"Tente novamente ou entre em contato com o suporte."
+        )
+
+    @staticmethod
+    def get_delete_account_email_mismatch() -> str:
+        return (
+            "❌ Email incorreto!\n\n"
+            "O email informado não corresponde ao cadastrado.\n\n"
+            "Digite /exclusao novamente para tentar outra vez ou "
+            "envie qualquer mensagem para cancelar."
         )

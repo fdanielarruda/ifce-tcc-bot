@@ -19,7 +19,7 @@ class BotController:
         user = update.effective_user
         telegram_id = str(user.id)
 
-        logger.info(f"📍 Comando /start recebido de {user.first_name} (ID: {telegram_id})")
+        logger.info(f"Comando /start recebido de {user.first_name} (ID: {telegram_id})")
 
         is_registered = await self.user_service.check_user_exists(telegram_id)
 
@@ -36,16 +36,35 @@ class BotController:
             context.user_data['registration_step'] = 'name'
 
     async def handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logger.info(f"📍 Comando /help recebido")
+        logger.info(f"Comando /ajuda recebido")
         await update.message.reply_text(self.messages.get_help_message())
 
-    @auth_middleware.require_auth(allow_commands=['start', 'help'])
+    @auth_middleware.require_auth()
+    async def handle_delete_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        telegram_id = str(user.id)
+
+        logger.info(f"⚠️ Comando /exclusao recebido de {user.first_name} (ID: {telegram_id})")
+
+        context.user_data['awaiting_deletion'] = True
+        context.user_data['deletion_telegram_id'] = telegram_id
+
+        await update.message.reply_text(
+            self.messages.get_delete_account_confirmation(),
+            parse_mode='Markdown'
+        )
+
+    @auth_middleware.require_auth(allow_commands=['start', 'ajuda', 'exclusao'])
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         telegram_id = str(user.id)
         message_text = update.message.text.strip()
 
         logger.info(f"💬 Mensagem recebida de {user.first_name}: {message_text[:50]}...")
+
+        if context.user_data.get('awaiting_deletion'):
+            await self._handle_deletion_flow(update, context, telegram_id, message_text)
+            return
 
         if context.user_data.get('awaiting_registration'):
             await self._handle_registration_flow(update, context, telegram_id, message_text)
@@ -116,6 +135,48 @@ class BotController:
             await update.message.reply_text(
                 self.messages.get_error_message("processar o documento")
             )
+
+    async def _handle_deletion_flow(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            telegram_id: str,
+            message_text: str
+    ):
+        if message_text.lower() in ['cancelar', 'cancel', 'não', 'nao', 'n']:
+            context.user_data.clear()
+            await update.message.reply_text(
+                self.messages.get_delete_account_cancelled()
+            )
+            return
+
+        if not self.user_service.validate_email(message_text):
+            await update.message.reply_text(
+                self.messages.get_invalid_email_message()
+            )
+            return
+
+        email = message_text
+
+        result = await self.user_service.delete_user(telegram_id, email)
+
+        if result['success']:
+            await update.message.reply_text(
+                self.messages.get_delete_account_success()
+            )
+            context.user_data.clear()
+            auth_middleware.clear_cache(telegram_id)
+
+        elif result.get('status_code') == 404 or 'não corresponde' in result.get('message', '').lower():
+            await update.message.reply_text(
+                self.messages.get_delete_account_email_mismatch()
+            )
+
+        else:
+            await update.message.reply_text(
+                self.messages.get_delete_account_error(result.get('message'))
+            )
+            context.user_data.clear()
 
     async def _handle_registration_flow(
             self,

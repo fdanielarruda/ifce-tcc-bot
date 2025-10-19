@@ -23,3 +23,11 @@ class UserAPI(BaseAPI):
         }
 
         return await self._request("POST", "/users", data)
+
+    async def delete_user(
+            self,
+            telegram_id: str,
+            email: str
+    ) -> Dict[str, Any]:
+        endpoint = f"/users?telegram_id={telegram_id}&email={email}"
+        return await self._request("DELETE", endpoint)
