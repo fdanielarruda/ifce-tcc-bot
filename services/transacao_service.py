@@ -14,7 +14,7 @@ class TransacaoService:
 
     async def verificar_cadastro(self, filtro: str, valor: str) -> bool:
         unico = self.api_service.verificar_cadastro(filtro, valor)
-        return bool(unico['dados']['usuarios'])
+        return bool(unico['dados']['users'])
 
     async def cadastrar_usuario(self, nome: str, email: str, telegram_id: str) -> Dict[str, Any]:
         return self.api_service.cadastrar_usuario(nome, email, telegram_id)
@@ -62,16 +62,14 @@ class TransacaoService:
         return f"⚠️ {resultado['mensagem']}"
 
     def _formatar_mensagem_sucesso(self, resultado: Dict[str, Any]) -> str:
-        emoji = "💸" if resultado['tipo'] == "debito" else "💰"
-        tipo_texto = "Débito" if resultado['tipo'] == "debito" else "Crédito"
+        tipo_texto = "Despesa" if resultado['tipo'] == "despesa" else "Receita"
 
         mensagem = (
-            f"✅ Transação registrada!\n\n"
-            f"{emoji} {tipo_texto}: R$ {resultado['valor']:.2f}\n"
-            f"📝 {resultado['descricao']}"
+            f"Transação registrada!\n"
+            f"\nID: {resultado['transacao_id']}"
+            f"\nCategoria: {resultado['categoria']}"
+            f"\n{tipo_texto}: R$ {resultado['valor']:.2f}"
+            f"\n{resultado['descricao']}"
         )
-
-        if resultado.get('transacao_id'):
-            mensagem += f"\n🔖 ID: {resultado['transacao_id']}"
 
         return mensagem

@@ -21,7 +21,6 @@ class APIService:
 
         try:
             logger.debug(f"Request {method} to {url} with data: {data}")
-
             response = requests.request(
                 method,
                 url,
@@ -33,19 +32,21 @@ class APIService:
             try:
                 json_response = response.json()
             except requests.exceptions.JSONDecodeError:
+                print(response)
                 json_response = {"detail": response.text}
-
             logger.debug(f"Response status: {response.status_code}, JSON: {json_response}")
-
             if response.status_code in [200, 201]:
                 return {'sucesso': True, 'dados': json_response}
             elif response.status_code == 404:
                 return {'sucesso': False, 'mensagem': "Recurso não encontrado (404)", 'status_code': 404}
             else:
-                mensagem_erro = json_response.get('detail') or json_response.get(
-                    'error') or f"Erro do servidor (código {response.status_code})"
+                mensagem_erro = (
+                        json_response.get('message') or
+                        json_response.get('detail') or
+                        json_response.get('error') or
+                        f"Erro do servidor (código {response.status_code})"
+                )
                 return {'sucesso': False, 'mensagem': mensagem_erro, 'status_code': response.status_code}
-
         except requests.exceptions.Timeout:
             return {'sucesso': False, 'mensagem': "⏱️ Tempo esgotado ao conectar com o servidor"}
         except requests.exceptions.ConnectionError:
@@ -54,15 +55,15 @@ class APIService:
             return {'sucesso': False, 'mensagem': f"❌ Erro inesperado: {str(e)}"}
 
     def verificar_cadastro(self, filtro: str, pesquisa: str) -> Dict[str, Any]:
-        return self._request("GET", f"/usuarios?{filtro}={pesquisa}")
+        return self._request("GET", f"/users?{filtro}={pesquisa}")
 
     def cadastrar_usuario(self, nome: str, email: str, telegram_id: str) -> Dict[str, Any]:
         dados = {
-            "nome": nome,
+            "name": nome,
             "email": email,
             "telegram_id": telegram_id
         }
-        return self._request("POST", "/usuarios", dados)
+        return self._request("POST", "/users", dados)
 
     def criar_transacao(
             self,
@@ -71,36 +72,23 @@ class APIService:
     ) -> Dict[str, Any]:
         dados = {
             "telegram_id": telegram_id,
-            "mensagem_original": mensagem_original
+            "original_message": mensagem_original
         }
 
-        resultado = self._request("POST", "/transacoes", dados)
+        resultado = self._request("POST", "/transactions", dados)
+        print('----------------------------------------------')
+        print(resultado)
+        print('----------------------------------------------')
 
         if resultado['sucesso']:
-            transacao = resultado['dados'].get('transacao', {})
+            transacao = resultado['dados'].get('transaction', {})
             return {
                 'sucesso': True,
                 'transacao_id': transacao.get('id'),
-                'tipo': transacao.get('tipo'),
-                'valor': transacao.get('valor'),
-                'descricao': transacao.get('descricao')
+                'tipo': transacao.get('type'),
+                'categoria': transacao.get('category').get('title') or 'desconhecido',
+                'valor': float(transacao.get('amount') or 0),
+                'descricao': transacao.get('description')
             }
-        else:
-            return resultado
-
-    def criar_transacao_pendente(
-            self,
-            telegram_id: str,
-            mensagem_original: str
-    ) -> Dict[str, Any]:
-        dados = {
-            "telegram_id": telegram_id,
-            "mensagem_original": mensagem_original
-        }
-
-        resultado = self._request("POST", "/transacoes/pendentes", dados)
-
-        if resultado['sucesso']:
-            return {'sucesso': True, 'mensagem': "Transação salva como pendente"}
         else:
             return resultado
