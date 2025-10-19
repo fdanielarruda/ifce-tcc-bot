@@ -1,5 +1,5 @@
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from bot.handlers import BotHandlers
+from controllers.bot_controller import BotController
 import config
 import logging
 import warnings
@@ -13,7 +13,6 @@ logging.basicConfig(
     stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
-
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
@@ -24,23 +23,22 @@ def main():
         return
 
     logger.info("🔧 Construindo aplicação...")
+
     try:
         application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
     except Exception as e:
         logger.error(f"❌ Falha ao construir a Application: {e}")
         return
 
-    handlers = BotHandlers()
+    controller = BotController()
 
-    application.add_handler(CommandHandler("start", handlers.start))
-    application.add_handler(CommandHandler("help", handlers.help))
-
-    application.add_handler(MessageHandler(filters.PHOTO, handlers.processar_foto))
-    application.add_handler(MessageHandler(filters.Document.ALL, handlers.processar_documento))
-
+    application.add_handler(CommandHandler("start", controller.handle_start))
+    application.add_handler(CommandHandler("help", controller.handle_help))
+    application.add_handler(MessageHandler(filters.PHOTO, controller.handle_photo))
+    application.add_handler(MessageHandler(filters.Document.ALL, controller.handle_document))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND,
-        handlers.processar_mensagem
+        controller.handle_message
     ))
 
     logger.info("✅ Bot iniciado com sucesso!")

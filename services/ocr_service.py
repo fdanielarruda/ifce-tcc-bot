@@ -2,70 +2,64 @@ import pytesseract
 from PIL import Image
 import fitz
 import io
-import logging
 from typing import Optional
+import logging
 
 logger = logging.getLogger(__name__)
 
 
 class OCRService:
-    def __init__(self):
-        pass
-
-    def extrair_texto_imagem(self, imagem_bytes: bytes) -> Optional[str]:
+    def extract_text_from_image(self, image_bytes: bytes) -> Optional[str]:
         try:
-            imagem = Image.open(io.BytesIO(imagem_bytes))
+            image = Image.open(io.BytesIO(image_bytes))
 
-            if imagem.mode != 'RGB':
-                imagem = imagem.convert('RGB')
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
 
-            texto = pytesseract.image_to_string(imagem, lang='por')
+            text = pytesseract.image_to_string(image, lang='por')
+            text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
 
-            texto = '\n'.join(line.strip() for line in texto.split('\n') if line.strip())
-
-            logger.info(f"✅ Texto extraído da imagem: {len(texto)} caracteres")
-            return texto
+            logger.info(f"✅ Texto extraído da imagem: {len(text)} caracteres")
+            return text
 
         except Exception as e:
             logger.error(f"❌ Erro ao extrair texto da imagem: {e}")
             return None
 
-    def extrair_texto_pdf(self, pdf_bytes: bytes) -> Optional[str]:
+    def extract_text_from_pdf(self, pdf_bytes: bytes) -> Optional[str]:
         try:
-            documento = fitz.open(stream=pdf_bytes, filetype="pdf")
-            texto_completo = []
+            document = fitz.open(stream=pdf_bytes, filetype="pdf")
+            full_text = []
 
-            for num_pagina in range(len(documento)):
-                pagina = documento[num_pagina]
+            for page_num in range(len(document)):
+                page = document[page_num]
+                text = page.get_text()
 
-                texto = pagina.get_text()
+                if not text.strip():
+                    logger.info(f"Página {page_num + 1} sem texto nativo, usando OCR...")
 
-                if not texto.strip():
-                    logger.info(f"Página {num_pagina + 1} sem texto nativo, usando OCR...")
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                    image_bytes = pix.tobytes("png")
+                    text = self.extract_text_from_image(image_bytes)
 
-                    pix = pagina.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom para melhor qualidade
-                    imagem_bytes = pix.tobytes("png")
+                if text:
+                    full_text.append(text.strip())
 
-                    texto = self.extrair_texto_imagem(imagem_bytes)
+            document.close()
 
-                if texto:
-                    texto_completo.append(texto.strip())
-
-            documento.close()
-
-            resultado = '\n\n'.join(texto_completo)
-            logger.info(f"✅ Texto extraído do PDF: {len(resultado)} caracteres")
-            return resultado
+            result = '\n\n'.join(full_text)
+            logger.info(f"✅ Texto extraído do PDF: {len(result)} caracteres")
+            return result
 
         except Exception as e:
             logger.error(f"❌ Erro ao extrair texto do PDF: {e}")
             return None
 
-    def processar_arquivo(self, arquivo_bytes: bytes, tipo_mime: str) -> Optional[str]:
-        if tipo_mime.startswith('image/'):
-            return self.extrair_texto_imagem(arquivo_bytes)
-        elif tipo_mime == 'application/pdf':
-            return self.extrair_texto_pdf(arquivo_bytes)
+    def process_file(self, file_bytes: bytes, mime_type: str) -> Optional[str]:
+        if mime_type.startswith('image/'):
+            return self.extract_text_from_image(file_bytes)
+        elif mime_type == 'application/pdf':
+            return self.extract_text_from_pdf(file_bytes)
         else:
-            logger.warning(f"⚠️ Tipo de arquivo não suportado: {tipo_mime}")
+            logger.warning(f"⚠️ Tipo de arquivo não suportado: {mime_type}")
             return None
