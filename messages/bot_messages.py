@@ -48,10 +48,10 @@ class BotMessages:
             f"• Enviar fotos de comprovantes\n"
             f"• Enviar PDFs de notas fiscais\n\n"
             f"Exemplo de mensagem:\n"
-            f"'Comprei um café por R$ 8,50 na padaria'\n\n"
+            f"• Comprei um café por R$ 8,50 na padaria\n\n"
             f"🌐 Para gerenciar transações e ter acesso a relatórios, acesse:\n"
             f"{config.APP_BASE_URL}\n\n"
-            f"Digite /help para ver mais informações."
+            f"Digite /ajuda para ver mais informações."
         )
 
     @staticmethod
@@ -76,14 +76,15 @@ class BotMessages:
             "Comandos disponíveis:\n"
             "/start - Inicia o bot e faz cadastro\n"
             "/ajuda - Mostra esta mensagem de ajuda\n"
+            "/link - Para acessar nossa página web\n"
             "/resumo - Mostra resumo de gastos\n"
             "/exclusao - Exclui sua conta permanentemente\n\n"
-            "Como registrar transações:\n\n"
+            "❓Como registrar transações:\n\n"
             "1️⃣ Mensagem de texto\n"
             "Envie uma descrição da sua transação:\n"
-            "• 'Almoço no restaurante por R$ 45'\n"
-            "• 'Recebi R$ 1000 de salário'\n"
-            "• 'Comprei sapato por R$ 150'\n\n"
+            "• Almoço no restaurante por R$ 45\n"
+            "• Recebi R$ 1000 de salário\n"
+            "• Comprei sapato por R$ 150\n\n"
             "2️⃣ Foto de comprovante\n"
             "Tire uma foto clara do comprovante e envie. O bot vai extrair as informações automaticamente.\n\n"
             "3️⃣ PDF de nota fiscal\n"
@@ -92,6 +93,13 @@ class BotMessages:
             "• Seja claro nas descrições\n"
             "• Fotos com boa iluminação funcionam melhor\n"
             "• O bot identifica automaticamente se é receita ou despesa"
+        )
+
+    @staticmethod
+    def get_link_message() -> str:
+        return (
+            f"🌐 Para gerenciar transações e ter acesso a relatórios, acesse:\n"
+            f"{config.APP_BASE_URL}\n\n"
         )
 
     @staticmethod

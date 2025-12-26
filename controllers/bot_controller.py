@@ -42,6 +42,11 @@ class BotController:
         await update.message.reply_text(self.messages.get_help_message())
 
 
+    async def handle_link(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logger.info(f"Comando /link recebido")
+        await update.message.reply_text(self.messages.get_link_message())
+    
+
     @auth_middleware.require_auth()
     async def handle_delete_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user

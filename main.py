@@ -34,8 +34,9 @@ def main():
 
     application.add_handler(CommandHandler("start", controller.handle_start))
     application.add_handler(CommandHandler("ajuda", controller.handle_help))
-    application.add_handler(CommandHandler("exclusao", controller.handle_delete_account))
+    application.add_handler(CommandHandler("link", controller.handle_link))
     application.add_handler(CommandHandler("resumo", controller.handle_summary))
+    application.add_handler(CommandHandler("exclusao", controller.handle_delete_account))
     application.add_handler(MessageHandler(filters.PHOTO, controller.handle_photo))
     application.add_handler(MessageHandler(filters.Document.ALL, controller.handle_document))
     application.add_handler(MessageHandler(
