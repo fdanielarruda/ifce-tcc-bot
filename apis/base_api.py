@@ -5,7 +5,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 class BaseAPI:
     def __init__(self):
         self.base_url = config.API_BASE_URL
@@ -60,10 +59,10 @@ class BaseAPI:
 
             else:
                 error_message = (
-                        json_response.get('message') or
-                        json_response.get('detail') or
-                        json_response.get('error') or
-                        f"Erro do servidor (código {response.status_code})"
+                    json_response.get('message') or
+                    json_response.get('detail') or
+                    json_response.get('error') or
+                    f"Erro do servidor (código {response.status_code})"
                 )
                 return {
                     'success': False,

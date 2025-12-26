@@ -1,27 +1,33 @@
-import pytesseract
+import easyocr
 from PIL import Image
 import fitz
 import io
 from typing import Optional
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 class OCRService:
+    def __init__(self):
+        self.reader = easyocr.Reader(['pt', 'en'], gpu=False)
+        logger.info("EasyOCR inicializado")
+    
     def extract_text_from_image(self, image_bytes: bytes) -> Optional[str]:
         try:
             image = Image.open(io.BytesIO(image_bytes))
-
             if image.mode != 'RGB':
                 image = image.convert('RGB')
 
-            text = pytesseract.image_to_string(image, lang='por')
+            image_np = np.array(image)
+
+            results = self.reader.readtext(image_np)
+
+            text = '\n'.join([result[1] for result in results])
             text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
 
-            logger.info(f"✅ Texto extraído da imagem: {len(text)} caracteres")
+            logger.info(f"Texto extraído da imagem: {len(text)} caracteres")
             return text
-
         except Exception as e:
             logger.error(f"❌ Erro ao extrair texto da imagem: {e}")
             return None
@@ -37,7 +43,6 @@ class OCRService:
 
                 if not text.strip():
                     logger.info(f"Página {page_num + 1} sem texto nativo, usando OCR...")
-
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                     image_bytes = pix.tobytes("png")
                     text = self.extract_text_from_image(image_bytes)
@@ -46,11 +51,9 @@ class OCRService:
                     full_text.append(text.strip())
 
             document.close()
-
             result = '\n\n'.join(full_text)
-            logger.info(f"✅ Texto extraído do PDF: {len(result)} caracteres")
+            logger.info(f"Texto extraído do PDF: {len(result)} caracteres")
             return result
-
         except Exception as e:
             logger.error(f"❌ Erro ao extrair texto do PDF: {e}")
             return None

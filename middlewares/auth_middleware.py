@@ -39,27 +39,20 @@ class AuthMiddleware:
                     if text.startswith('/'):
                         command = text.split()[0][1:]
                         if command in allow_commands:
-                            logger.info(
-                                f"✅ Comando '{command}' permitido sem autenticação"
-                            )
                             return await func(controller_self, update, context)
 
                 # Verifica se está em processo de cadastro
                 if context.user_data.get('awaiting_registration'):
-                    logger.info(f"✅ Usuário {telegram_id} em processo de cadastro")
                     return await func(controller_self, update, context)
 
                 # Verifica autenticação
                 is_authenticated = await self._check_authentication(telegram_id, user)
 
                 if not is_authenticated:
-                    logger.warning(f"⛔ Acesso negado para usuário {telegram_id}")
                     await update.message.reply_text(
                         self.messages.get_not_registered_message()
                     )
                     return
-
-                logger.info(f"✅ Usuário {telegram_id} autenticado")
 
                 # Adiciona informações do usuário ao context para uso posterior
                 context.user_data['authenticated'] = True

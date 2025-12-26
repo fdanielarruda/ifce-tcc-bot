@@ -33,7 +33,6 @@ class UserService:
         result = await self.user_api.create_user(name, email, telegram_id)
 
         if result['success']:
-            logger.info(f"✅ Usuário cadastrado: {name} ({email})")
             return {
                 'success': True,
                 'message': 'Usuário cadastrado com sucesso',
@@ -57,7 +56,6 @@ class UserService:
         result = await self.user_api.delete_user(telegram_id, email)
 
         if result['success']:
-            logger.info(f"✅ Usuário deletado: {telegram_id}")
             return {
                 'success': True,
                 'message': 'Conta excluída com sucesso'

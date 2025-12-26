@@ -5,7 +5,7 @@ class BotMessages:
     def get_welcome_back_message(name: str) -> str:
         return (
             f"👋 Olá novamente, {name}!\n\n"
-            f"Você já está cadastrado. Envie suas transações e eu vou processá-las para você!\n\n"
+            f"Envie suas transações e eu vou processá-las para você!\n\n"
             f"💡 Dicas:\n"
             f"• Envie uma mensagem de texto com a transação\n"
             f"• Envie uma foto do comprovante\n"
@@ -59,14 +59,14 @@ class BotMessages:
         return (
             f"❌ Erro ao realizar o cadastro.\n\n"
             f"Detalhes: {error}\n\n"
-            f"Por favor, tente novamente mais tarde ou use /start para recomeçar."
+            f"Por favor, tente novamente mais tarde ou use /iniciar para recomeçar."
         )
 
     @staticmethod
     def get_not_registered_message() -> str:
         return (
             "⚠️ Você ainda não está cadastrado.\n\n"
-            "Use o comando /start para fazer seu cadastro e começar a usar o bot."
+            "Use o comando /iniciar para fazer seu cadastro e começar a usar o bot."
         )
 
     @staticmethod
@@ -74,7 +74,7 @@ class BotMessages:
         return (
             "📚 Ajuda - Bot de Finanças\n\n"
             "Comandos disponíveis:\n"
-            "/start - Inicia o bot e faz cadastro\n"
+            "/iniciar - Inicia o bot e faz cadastro\n"
             "/ajuda - Mostra esta mensagem de ajuda\n"
             "/exclusao - Exclui sua conta permanentemente\n\n"
             "Como registrar transações:\n\n"

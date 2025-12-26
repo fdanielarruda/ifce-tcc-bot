@@ -15,11 +15,12 @@ class BotController:
         self.user_service = UserService()
         self.messages = BotMessages()
 
+
     async def handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         telegram_id = str(user.id)
 
-        logger.info(f"Comando /start recebido de {user.first_name} (ID: {telegram_id})")
+        logger.info(f"Comando /iniciar recebido de {user.first_name} (ID: {telegram_id})")
 
         is_registered = await self.user_service.check_user_exists(telegram_id)
 
@@ -35,16 +36,18 @@ class BotController:
             context.user_data['awaiting_registration'] = True
             context.user_data['registration_step'] = 'name'
 
+
     async def handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Comando /ajuda recebido")
         await update.message.reply_text(self.messages.get_help_message())
+
 
     @auth_middleware.require_auth()
     async def handle_delete_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         telegram_id = str(user.id)
 
-        logger.info(f"⚠️ Comando /exclusao recebido de {user.first_name} (ID: {telegram_id})")
+        logger.info(f"Comando /exclusao recebido de {user.first_name} (ID: {telegram_id})")
 
         context.user_data['awaiting_deletion'] = True
         context.user_data['deletion_telegram_id'] = telegram_id
@@ -53,6 +56,11 @@ class BotController:
             self.messages.get_delete_account_confirmation(),
             parse_mode='Markdown'
         )
+
+
+    async def handle_summary():
+        
+    
 
     @auth_middleware.require_auth(allow_commands=['start', 'ajuda', 'exclusao'])
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -72,12 +80,13 @@ class BotController:
 
         await self._process_transaction_message(update, telegram_id, message_text)
 
+
     @auth_middleware.require_auth()
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         telegram_id = str(user.id)
 
-        logger.info(f"📷 Foto recebida de {user.first_name}")
+        logger.info(f"Foto recebida de {user.first_name}")
 
         await update.message.reply_text(self.messages.get_processing_message())
 
@@ -99,6 +108,7 @@ class BotController:
             await update.message.reply_text(
                 self.messages.get_error_message("processar a foto")
             )
+
 
     @auth_middleware.require_auth()
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -135,6 +145,7 @@ class BotController:
             await update.message.reply_text(
                 self.messages.get_error_message("processar o documento")
             )
+
 
     async def _handle_deletion_flow(
             self,
@@ -177,6 +188,7 @@ class BotController:
                 self.messages.get_delete_account_error(result.get('message'))
             )
             context.user_data.clear()
+
 
     async def _handle_registration_flow(
             self,
@@ -221,6 +233,7 @@ class BotController:
                 await update.message.reply_text(
                     self.messages.get_registration_error_message(result.get('message'))
                 )
+
 
     async def _process_transaction_message(
             self,
