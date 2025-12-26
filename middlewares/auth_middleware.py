@@ -99,11 +99,11 @@ class AuthMiddleware:
 
                 return is_authenticated
 
-            logger.error(f"❌ Erro ao verificar usuário: {result.get('message')}")
+            logger.error(f"Erro ao verificar usuário: {result.get('message')}")
             return False
 
         except Exception as e:
-            logger.error(f"❌ Erro no middleware de autenticação: {e}", exc_info=True)
+            logger.error(f"Erro no middleware de autenticação: {e}", exc_info=True)
             return False
 
     def clear_cache(self, telegram_id: str = None):

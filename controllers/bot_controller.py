@@ -20,7 +20,7 @@ class BotController:
         user = update.effective_user
         telegram_id = str(user.id)
 
-        logger.info(f"Comando /iniciar recebido de {user.first_name} (ID: {telegram_id})")
+        logger.info(f"Comando /start recebido de {user.first_name} (ID: {telegram_id})")
 
         is_registered = await self.user_service.check_user_exists(telegram_id)
 
@@ -58,8 +58,19 @@ class BotController:
         )
 
 
-    async def handle_summary():
+    @auth_middleware.require_auth()
+    async def handle_summary(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        telegram_id = str(user.id)
         
+        logger.info(f"Comando /resumo recebido de {user.first_name} (ID: {telegram_id})")
+
+        context.user_data['awaiting_summary_choice'] = True
+
+        await update.message.reply_text(
+            self.messages.get_summary_choice_message(),
+            parse_mode='Markdown'
+        )
     
 
     @auth_middleware.require_auth(allow_commands=['start', 'ajuda', 'exclusao'])
@@ -72,6 +83,10 @@ class BotController:
 
         if context.user_data.get('awaiting_deletion'):
             await self._handle_deletion_flow(update, context, telegram_id, message_text)
+            return
+
+        if context.user_data.get('awaiting_summary_choice'):
+            await self._handle_summary_choice(update, context, telegram_id, message_text)
             return
 
         if context.user_data.get('awaiting_registration'):
@@ -104,7 +119,7 @@ class BotController:
             await update.message.reply_text(result)
 
         except Exception as e:
-            logger.error(f"❌ Erro ao processar foto: {e}")
+            logger.error(f"Erro ao processar foto: {e}")
             await update.message.reply_text(
                 self.messages.get_error_message("processar a foto")
             )
@@ -141,7 +156,7 @@ class BotController:
             await update.message.reply_text(result)
 
         except Exception as e:
-            logger.error(f"❌ Erro ao processar documento: {e}")
+            logger.error(f"Erro ao processar documento: {e}")
             await update.message.reply_text(
                 self.messages.get_error_message("processar o documento")
             )
@@ -235,6 +250,41 @@ class BotController:
                 )
 
 
+    async def _handle_summary_choice(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            telegram_id: str,
+            message_text: str
+    ):
+        choice = message_text.strip().lower()
+        
+        if choice in ['cancelar', 'cancel']:
+            context.user_data.clear()
+            await update.message.reply_text("Operação cancelada.")
+            return
+        
+        if choice not in ['1', '2', 'mes', 'mês', 'categoria']:
+            await update.message.reply_text(
+                "❌ Opção inválida. Digite 1 para mês ou 2 para categoria."
+            )
+            return
+        
+        summary_type = 'month' if choice in ['1', 'mes', 'mês'] else 'category'
+        
+        await update.message.reply_text(self.messages.get_processing_message())
+        
+        try:
+            result = await self.transaction_service.get_summary(telegram_id, summary_type)
+            await update.message.reply_text(result, parse_mode='Markdown')
+        except Exception as e:
+            logger.error(f"Erro ao buscar resumo: {e}")
+            await update.message.reply_text(
+                self.messages.get_error_message("buscar o resumo")
+            )
+        
+        context.user_data.clear()
+
     async def _process_transaction_message(
             self,
             update: Update,
@@ -250,7 +300,7 @@ class BotController:
             )
             await update.message.reply_text(result)
         except Exception as e:
-            logger.error(f"❌ Erro ao processar transação: {e}")
+            logger.error(f"Erro ao processar transação: {e}")
             await update.message.reply_text(
                 self.messages.get_error_message("processar a transação")
             )

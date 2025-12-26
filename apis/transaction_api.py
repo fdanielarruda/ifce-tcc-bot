@@ -37,3 +37,19 @@ class TransactionAPI(BaseAPI):
             }
 
         return result
+
+    async def get_summary(
+            self,
+            telegram_id: str,
+            summary_type: str
+    ) -> Dict[str, Any]:
+        endpoint = f"/transactions/summary/{summary_type}?telegram_id={telegram_id}"
+        result = await self._request("GET", endpoint)
+        
+        if result['success']:
+            return {
+                'success': True,
+                'data': result['data'].get('summary', [])
+            }
+        
+        return result

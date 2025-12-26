@@ -29,7 +29,7 @@ class OCRService:
             logger.info(f"Texto extraído da imagem: {len(text)} caracteres")
             return text
         except Exception as e:
-            logger.error(f"❌ Erro ao extrair texto da imagem: {e}")
+            logger.error(f"Erro ao extrair texto da imagem: {e}")
             return None
 
     def extract_text_from_pdf(self, pdf_bytes: bytes) -> Optional[str]:
@@ -55,7 +55,7 @@ class OCRService:
             logger.info(f"Texto extraído do PDF: {len(result)} caracteres")
             return result
         except Exception as e:
-            logger.error(f"❌ Erro ao extrair texto do PDF: {e}")
+            logger.error(f"Erro ao extrair texto do PDF: {e}")
             return None
 
     def process_file(self, file_bytes: bytes, mime_type: str) -> Optional[str]:

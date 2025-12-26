@@ -73,13 +73,13 @@ class BaseAPI:
         except requests.exceptions.Timeout:
             return {
                 'success': False,
-                'message': "⏱️ Tempo esgotado ao conectar com o servidor"
+                'message': "Tempo esgotado ao conectar com o servidor"
             }
 
         except requests.exceptions.ConnectionError:
             return {
                 'success': False,
-                'message': "🔌 Não foi possível conectar ao servidor"
+                'message': "Não foi possível conectar ao servidor"
             }
 
         except Exception as e:

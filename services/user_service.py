@@ -39,7 +39,7 @@ class UserService:
                 'data': result.get('data')
             }
 
-        logger.error(f"❌ Erro ao cadastrar usuário: {result.get('message')}")
+        logger.error(f"Erro ao cadastrar usuário: {result.get('message')}")
         return result
 
     async def delete_user(
@@ -61,7 +61,7 @@ class UserService:
                 'message': 'Conta excluída com sucesso'
             }
 
-        logger.error(f"❌ Erro ao deletar usuário: {result.get('message')}")
+        logger.error(f"Erro ao deletar usuário: {result.get('message')}")
         return result
 
     @staticmethod

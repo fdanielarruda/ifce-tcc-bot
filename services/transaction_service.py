@@ -51,6 +51,14 @@ class TransactionService:
 
         return await self.process_text_transaction(extracted_text, telegram_id)
 
+    async def get_summary(self, telegram_id: str, summary_type: str) -> str:
+        result = await self.transaction_api.get_summary(telegram_id, summary_type)
+        
+        if not result['success']:
+            return f"⚠️ {result['message']}"
+        
+        return self._format_summary(result['data'], summary_type)
+
     def _format_success_message(self, data: Dict[str, Any]) -> str:
         transaction_type = "Despesa" if data['type'] == "despesa" else "Receita"
 
@@ -62,4 +70,23 @@ class TransactionService:
             f"\n📝 {data['description']}"
         )
 
+        return message
+    
+    def _format_summary(self, data: Dict[str, Any], summary_type: str) -> str:
+        if not data or len(data) == 0:
+            return "📊 Nenhuma transação encontrada."
+
+        title = "📊 RESUMO POR MÊS" if summary_type == 'month' else "📊 RESUMO POR CATEGORIA"
+
+        message = f"{title}\n\n"
+
+        for item in data:
+            key = item.get('month' if summary_type == 'month' else 'category', 'N/A')
+            total = float(item.get('total', 0))
+            count = item.get('count', 0)
+
+            message += f"📌 {key}\n"
+            message += f"   💰 Total: R$ {total:,.2f}\n"
+            message += f"   📝 Transações: {count}\n\n"
+        
         return message
