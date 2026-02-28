@@ -17,13 +17,9 @@ class BotMessages:
     def get_registration_message(name: str) -> str:
         return (
             f"👋 Olá, {name}! Bem-vindo ao Bot de Finanças!\n\n"
-            f"Para começar, preciso fazer seu cadastro.\n\n"
-            f"Por favor, me informe seu nome completo:"
+            f"Para começar, preciso confirmar seu cadastro.\n\n"
+            f"Por favor, me informe seu email:"
         )
-
-    @staticmethod
-    def get_ask_email_message() -> str:
-        return "📧 Ótimo! Agora me informe seu email:"
 
     @staticmethod
     def get_invalid_email_message() -> str:
@@ -89,6 +85,8 @@ class BotMessages:
             "Tire uma foto clara do comprovante e envie. O bot vai extrair as informações automaticamente.\n\n"
             "3️⃣ PDF de nota fiscal\n"
             "Envie o arquivo PDF e o bot processará as informações.\n\n"
+            "🚫 Cancelar uma operação:\n"
+            "Durante qualquer etapa (cadastro, resumo, exclusão), digite cancelar para interromper a ação em andamento.\n\n"
             "💡 Dicas:\n"
             "• Seja claro nas descrições\n"
             "• Fotos com boa iluminação funcionam melhor\n"

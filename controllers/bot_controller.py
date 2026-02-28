@@ -34,7 +34,8 @@ class BotController:
                 self.messages.get_registration_message(user.first_name)
             )
             context.user_data['awaiting_registration'] = True
-            context.user_data['registration_step'] = 'name'
+            context.user_data['registration_step'] = 'email'
+            context.user_data['user_name'] = user.full_name
 
 
     async def handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,6 +86,16 @@ class BotController:
         message_text = update.message.text.strip()
 
         logger.info(f"💬 Mensagem recebida de {user.first_name}: {message_text[:50]}...")
+
+        if message_text.lower() in ['cancelar']:
+            if any([
+                context.user_data.get('awaiting_deletion'),
+                context.user_data.get('awaiting_summary_choice'),
+                context.user_data.get('awaiting_registration'),
+            ]):
+                context.user_data.clear()
+                await update.message.reply_text("❌ Operação cancelada.")
+                return
 
         if context.user_data.get('awaiting_deletion'):
             await self._handle_deletion_flow(update, context, telegram_id, message_text)
@@ -174,13 +185,6 @@ class BotController:
             telegram_id: str,
             message_text: str
     ):
-        if message_text.lower() in ['cancelar', 'cancel', 'não', 'nao', 'n']:
-            context.user_data.clear()
-            await update.message.reply_text(
-                self.messages.get_delete_account_cancelled()
-            )
-            return
-
         if not self.user_service.validate_email(message_text):
             await update.message.reply_text(
                 self.messages.get_invalid_email_message()
@@ -219,14 +223,7 @@ class BotController:
     ):
         step = context.user_data.get('registration_step')
 
-        if step == 'name':
-            context.user_data['user_name'] = message_text
-            context.user_data['registration_step'] = 'email'
-            await update.message.reply_text(
-                self.messages.get_ask_email_message()
-            )
-
-        elif step == 'email':
+        if step == 'email':
             if not self.user_service.validate_email(message_text):
                 await update.message.reply_text(
                     self.messages.get_invalid_email_message()
@@ -263,12 +260,7 @@ class BotController:
             message_text: str
     ):
         choice = message_text.strip().lower()
-        
-        if choice in ['cancelar', 'cancel']:
-            context.user_data.clear()
-            await update.message.reply_text("Operação cancelada.")
-            return
-        
+
         if choice not in ['1', '2', 'mes', 'mês', 'categoria']:
             await update.message.reply_text(
                 "❌ Opção inválida. Digite 1 para mês ou 2 para categoria."
