@@ -32,8 +32,8 @@ class TransactionAPI(BaseAPI):
                     'type': transaction.get('type'),
                     'category': category.get('title', 'desconhecido'),
                     'amount': float(transaction.get('amount', 0)),
-                    'description': transaction.get('description', ''),
-                    'balance': transaction.get('balance', '')
+                    'description': transaction.get('description', '-------'),
+                    'balance': float(transaction.get('balance', 0))
                 }
             }
 

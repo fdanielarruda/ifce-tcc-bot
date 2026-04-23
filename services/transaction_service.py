@@ -68,7 +68,7 @@ class TransactionService:
             f"\n📂 Categoria: {data['category']}"
             f"\n💰 {transaction_type}: R$ {data['amount']:.2f}"
             f"\n📝 {data['description']}"
-            f"\n💵 Saldo: {data['balance']}"
+            f"\n💵 Saldo: R$ {data['balance']:.2f}"
         )
 
         return message
