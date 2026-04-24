@@ -59,6 +59,20 @@ class TransactionService:
         
         return self._format_summary(result['data'], summary_type)
 
+    async def get_recent_transactions(self, telegram_id: str, limit: int = 5) -> Dict[str, Any]:
+        return await self.transaction_api.get_recent_transactions(telegram_id, limit)
+
+    async def update_transaction(
+            self,
+            transaction_id: str,
+            telegram_id: str,
+            amount: float = None,
+            description: str = None
+    ) -> Dict[str, Any]:
+        return await self.transaction_api.update_transaction(
+            transaction_id, telegram_id, amount, description
+        )
+
     def _format_success_message(self, data: Dict[str, Any]) -> str:
         transaction_type = "Despesa" if data['type'] == "despesa" else "Receita"
 
@@ -69,6 +83,7 @@ class TransactionService:
             f"\n💰 {transaction_type}: R$ {data['amount']:.2f}"
             f"\n📝 {data['description']}"
             f"\n💵 Saldo: R$ {data['balance']:.2f}"
+            f"\n\n💬 Caso queira contestar, digite /editar"
         )
 
         return message

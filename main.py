@@ -1,4 +1,4 @@
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 from controllers.bot_controller import BotController
 import config
 import logging
@@ -37,6 +37,8 @@ def main():
     application.add_handler(CommandHandler("link", controller.handle_link))
     application.add_handler(CommandHandler("resumo", controller.handle_summary))
     application.add_handler(CommandHandler("exclusao", controller.handle_delete_account))
+    application.add_handler(CommandHandler("editar", controller.handle_edit))
+    application.add_handler(CallbackQueryHandler(controller.handle_callback_query))
     application.add_handler(MessageHandler(filters.PHOTO, controller.handle_photo))
     application.add_handler(MessageHandler(filters.Document.ALL, controller.handle_document))
     application.add_handler(MessageHandler(

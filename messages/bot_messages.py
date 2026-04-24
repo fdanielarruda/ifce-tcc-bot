@@ -74,6 +74,7 @@ class BotMessages:
             "/ajuda - Mostra esta mensagem de ajuda\n"
             "/link - Para acessar nossa página web\n"
             "/resumo - Mostra resumo de gastos\n"
+            "/editar - Edita uma transação recente\n"
             "/exclusao - Exclui sua conta permanentemente\n\n"
             "❓Como registrar transações:\n\n"
             "1️⃣ Mensagem de texto\n"
@@ -172,4 +173,41 @@ class BotMessages:
             "2️⃣ Por categoria\n\n"
             "Digite 1 ou 2:"
         )
+
+    @staticmethod
+    def get_edit_select_transaction_message() -> str:
+        return "✏️ Selecione a transação que deseja editar:"
+
+    @staticmethod
+    def get_edit_select_field_message(description: str, amount: float) -> str:
+        return (
+            f"📝 Transação selecionada:\n"
+            f"• Descrição: {description}\n"
+            f"• Valor: R$ {amount:.2f}\n\n"
+            f"O que deseja editar?"
+        )
+
+    @staticmethod
+    def get_edit_ask_value_message() -> str:
+        return "💰 Digite o novo valor (ex: 45.90):"
+
+    @staticmethod
+    def get_edit_ask_description_message() -> str:
+        return "📝 Digite a nova descrição:"
+
+    @staticmethod
+    def get_edit_success_message(description: str, amount: float) -> str:
+        return (
+            f"✅ Transação atualizada!\n\n"
+            f"• Descrição: {description}\n"
+            f"• Valor: R$ {amount:.2f}"
+        )
+
+    @staticmethod
+    def get_edit_no_transactions_message() -> str:
+        return "📭 Nenhuma transação recente encontrada para editar."
+
+    @staticmethod
+    def get_edit_invalid_value_message() -> str:
+        return "❌ Valor inválido. Digite um número (ex: 45.90):"
         

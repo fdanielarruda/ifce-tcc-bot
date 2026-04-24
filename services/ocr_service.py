@@ -1,33 +1,34 @@
-import easyocr
+import pytesseract
 from PIL import Image
 import fitz
 import io
 from typing import Optional
 import logging
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
+MAX_IMAGE_DIMENSION = 1600
+TESSERACT_CONFIG = "--oem 3 --psm 6 -l por+eng"
+
+
 class OCRService:
-    def __init__(self):
-        self.reader = easyocr.Reader(['pt', 'en'], gpu=False)
-        logger.info("EasyOCR inicializado")
-    
     def extract_text_from_image(self, image_bytes: bytes) -> Optional[str]:
         try:
             image = Image.open(io.BytesIO(image_bytes))
             if image.mode != 'RGB':
                 image = image.convert('RGB')
 
-            image_np = np.array(image)
+            w, h = image.size
+            if max(w, h) > MAX_IMAGE_DIMENSION:
+                scale = MAX_IMAGE_DIMENSION / max(w, h)
+                image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+                logger.info(f"Imagem redimensionada de {w}x{h} para {image.size}")
 
-            results = self.reader.readtext(image_np)
-
-            text = '\n'.join([result[1] for result in results])
+            text = pytesseract.image_to_string(image, config=TESSERACT_CONFIG)
             text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
 
             logger.info(f"Texto extraído da imagem: {len(text)} caracteres")
-            return text
+            return text or None
         except Exception as e:
             logger.error(f"Erro ao extrair texto da imagem: {e}")
             return None
@@ -53,7 +54,7 @@ class OCRService:
             document.close()
             result = '\n\n'.join(full_text)
             logger.info(f"Texto extraído do PDF: {len(result)} caracteres")
-            return result
+            return result or None
         except Exception as e:
             logger.error(f"Erro ao extrair texto do PDF: {e}")
             return None

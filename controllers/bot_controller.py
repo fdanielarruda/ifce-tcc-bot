@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.transaction_service import TransactionService
 from services.user_service import UserService
@@ -92,6 +92,7 @@ class BotController:
                 context.user_data.get('awaiting_deletion'),
                 context.user_data.get('awaiting_summary_choice'),
                 context.user_data.get('awaiting_registration'),
+                context.user_data.get('awaiting_edit_value'),
             ]):
                 context.user_data.clear()
                 await update.message.reply_text("❌ Operação cancelada.")
@@ -107,6 +108,10 @@ class BotController:
 
         if context.user_data.get('awaiting_registration'):
             await self._handle_registration_flow(update, context, telegram_id, message_text)
+            return
+
+        if context.user_data.get('awaiting_edit_value'):
+            await self._handle_edit_value(update, context, telegram_id, message_text)
             return
 
         await self._process_transaction_message(update, telegram_id, message_text)
@@ -281,6 +286,146 @@ class BotController:
             )
         
         context.user_data.clear()
+
+    @auth_middleware.require_auth()
+    async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        telegram_id = str(user.id)
+
+        logger.info(f"Comando /editar recebido de {user.first_name} (ID: {telegram_id})")
+
+        try:
+            result = await self.transaction_service.get_recent_transactions(telegram_id, limit=5)
+        except Exception as e:
+            logger.error(f"Erro ao buscar transações: {e}")
+            await update.message.reply_text(
+                self.messages.get_error_message("buscar as transações")
+            )
+            return
+
+        if not result['success']:
+            await update.message.reply_text(f"⚠️ {result['message']}")
+            return
+
+        transactions = result['data']
+        if not transactions:
+            await update.message.reply_text(self.messages.get_edit_no_transactions_message())
+            return
+
+        context.user_data['edit_transactions'] = transactions
+
+        keyboard = []
+        for t in transactions:
+            transaction_id = t.get('id', '')
+            amount = float(t.get('amount', 0))
+            description = t.get('description', 'Sem descrição')
+            label = f"R$ {amount:.2f} – {description[:30]}"
+            keyboard.append([InlineKeyboardButton(label, callback_data=f"edit_select:{transaction_id}")])
+
+        keyboard.append([InlineKeyboardButton("❌ Cancelar", callback_data="edit_cancel")])
+
+        await update.message.reply_text(
+            self.messages.get_edit_select_transaction_message(),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    async def handle_callback_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+        data = query.data
+
+        if data == "edit_cancel":
+            context.user_data.clear()
+            await query.edit_message_text("❌ Edição cancelada.")
+            return
+
+        if data.startswith("edit_select:"):
+            transaction_id = data.split(":", 1)[1]
+            transactions = context.user_data.get('edit_transactions', [])
+            transaction = next((t for t in transactions if str(t.get('id')) == transaction_id), None)
+
+            if not transaction:
+                await query.edit_message_text("⚠️ Transação não encontrada.")
+                return
+
+            context.user_data['editing_transaction_id'] = transaction_id
+            context.user_data['editing_transaction'] = transaction
+
+            description = transaction.get('description', 'Sem descrição')
+            amount = float(transaction.get('amount', 0))
+
+            keyboard = [
+                [InlineKeyboardButton("💰 Editar valor", callback_data="edit_field:amount")],
+                [InlineKeyboardButton("📝 Editar descrição", callback_data="edit_field:description")],
+                [InlineKeyboardButton("❌ Cancelar", callback_data="edit_cancel")],
+            ]
+
+            await query.edit_message_text(
+                self.messages.get_edit_select_field_message(description, amount),
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            return
+
+        if data.startswith("edit_field:"):
+            field = data.split(":", 1)[1]
+            context.user_data['edit_field'] = field
+            context.user_data['awaiting_edit_value'] = True
+
+            if field == 'amount':
+                await query.edit_message_text(self.messages.get_edit_ask_value_message())
+            else:
+                await query.edit_message_text(self.messages.get_edit_ask_description_message())
+
+    async def _handle_edit_value(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            telegram_id: str,
+            message_text: str
+    ):
+        field = context.user_data.get('edit_field')
+        transaction_id = context.user_data.get('editing_transaction_id')
+
+        amount = None
+        description = None
+
+        if field == 'amount':
+            try:
+                amount = float(message_text.replace(',', '.'))
+            except ValueError:
+                await update.message.reply_text(self.messages.get_edit_invalid_value_message())
+                return
+        else:
+            description = message_text.strip()
+
+        try:
+            result = await self.transaction_service.update_transaction(
+                transaction_id=transaction_id,
+                telegram_id=telegram_id,
+                amount=amount,
+                description=description
+            )
+        except Exception as e:
+            logger.error(f"Erro ao atualizar transação: {e}")
+            await update.message.reply_text(
+                self.messages.get_error_message("atualizar a transação")
+            )
+            context.user_data.clear()
+            return
+
+        context.user_data.clear()
+
+        if not result['success']:
+            await update.message.reply_text(f"⚠️ {result['message']}")
+            return
+
+        transaction = result['data']
+        updated_description = transaction.get('description', description or 'Sem descrição')
+        updated_amount = float(transaction.get('amount', amount or 0))
+
+        await update.message.reply_text(
+            self.messages.get_edit_success_message(updated_description, updated_amount)
+        )
 
     async def _process_transaction_message(
             self,
