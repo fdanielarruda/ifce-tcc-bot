@@ -1,4 +1,5 @@
-import pytesseract
+import easyocr
+import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 import fitz
 import io
@@ -10,12 +11,18 @@ logger = logging.getLogger(__name__)
 
 MAX_IMAGE_DIMENSION = 1600
 MIN_IMAGE_DIMENSION = 1000
-PSM_FALLBACK_ORDER = [6, 4, 11]
-TESSERACT_BASE_CONFIG = "--oem 3 -l por+eng"
 PDF_OCR_MATRIX = fitz.Matrix(3, 3)
 
 
 class OCRService:
+    def __init__(self):
+        self._reader = None
+
+    def _get_reader(self):
+        if self._reader is None:
+            self._reader = easyocr.Reader(['pt', 'en'], gpu=False)
+        return self._reader
+
     def _preprocess_image(self, image: Image.Image) -> Image.Image:
         image = image.convert('L')
         image = ImageEnhance.Contrast(image).enhance(2.0)
@@ -46,14 +53,17 @@ class OCRService:
         text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
         return text
 
-    def _extract_with_fallback(self, image: Image.Image) -> str:
-        for psm in PSM_FALLBACK_ORDER:
-            config = f"{TESSERACT_BASE_CONFIG} --psm {psm}"
-            text = pytesseract.image_to_string(image, config=config)
-            text = self._clean_text(text)
-            if len(text) > 20:
-                logger.info(f"OCR bem-sucedido com psm={psm} ({len(text)} caracteres)")
-                return text
+    def _extract_text(self, image: Image.Image) -> str:
+        reader = self._get_reader()
+        np_image = np.array(image)
+        results = reader.readtext(np_image)
+
+        if not results:
+            return ''
+
+        results.sort(key=lambda r: r[0][0][1])
+        text = '\n'.join(result[1] for result in results)
+        logger.info(f"EasyOCR extraiu {len(results)} blocos de texto")
         return text
 
     def extract_text_from_image(self, image_bytes: bytes) -> Optional[str]:
@@ -62,7 +72,7 @@ class OCRService:
             image = self._resize_image(image)
             image = self._preprocess_image(image)
 
-            text = self._extract_with_fallback(image)
+            text = self._clean_text(self._extract_text(image))
 
             logger.info(f"Texto extraído da imagem: {len(text)} caracteres")
             return text or None
