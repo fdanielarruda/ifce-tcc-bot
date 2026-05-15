@@ -4,9 +4,43 @@ from services.transaction_service import TransactionService
 from services.user_service import UserService
 from messages.bot_messages import BotMessages
 from middlewares.auth_middleware import auth_middleware
+from functools import wraps
 import logging
+import time
 
 logger = logging.getLogger(__name__)
+
+
+def log_timing(handler):
+    @wraps(handler)
+    async def wrapper(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        nome = user.first_name if user else "desconhecido"
+        uid = user.id if user else "-"
+
+        if update.callback_query:
+            tipo = f"callback '{update.callback_query.data}'"
+        elif update.message:
+            if update.message.photo:
+                tipo = "foto"
+            elif update.message.document:
+                tipo = f"documento ({update.message.document.mime_type})"
+            elif update.message.text:
+                tipo = f"texto '{update.message.text[:40]}'"
+            else:
+                tipo = "mensagem"
+        else:
+            tipo = "update"
+
+        logger.info(f"[IN]  {handler.__name__} | {nome} ({uid}) | {tipo}")
+        start = time.perf_counter()
+
+        result = await handler(self, update, context)
+
+        elapsed = time.perf_counter() - start
+        logger.info(f"[OUT] {handler.__name__} | {nome} ({uid}) | {elapsed:.3f}s")
+        return result
+    return wrapper
 
 
 class BotController:
@@ -16,6 +50,7 @@ class BotController:
         self.messages = BotMessages()
 
 
+    @log_timing
     async def handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         telegram_id = str(user.id)
@@ -38,16 +73,19 @@ class BotController:
             context.user_data['user_name'] = user.full_name
 
 
+    @log_timing
     async def handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Comando /ajuda recebido")
         await update.message.reply_text(self.messages.get_help_message())
 
 
+    @log_timing
     async def handle_link(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Comando /link recebido")
         await update.message.reply_text(self.messages.get_link_message())
     
 
+    @log_timing
     @auth_middleware.require_auth()
     async def handle_delete_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -64,6 +102,7 @@ class BotController:
         )
 
 
+    @log_timing
     @auth_middleware.require_auth()
     async def handle_summary(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -79,6 +118,7 @@ class BotController:
         )
     
 
+    @log_timing
     @auth_middleware.require_auth(allow_commands=['start', 'ajuda', 'exclusao'])
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -117,6 +157,7 @@ class BotController:
         await self._process_transaction_message(update, telegram_id, message_text)
 
 
+    @log_timing
     @auth_middleware.require_auth()
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -146,6 +187,7 @@ class BotController:
             )
 
 
+    @log_timing
     @auth_middleware.require_auth()
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -287,6 +329,7 @@ class BotController:
         
         context.user_data.clear()
 
+    @log_timing
     @auth_middleware.require_auth()
     async def handle_edit(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -329,6 +372,7 @@ class BotController:
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+    @log_timing
     async def handle_callback_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
