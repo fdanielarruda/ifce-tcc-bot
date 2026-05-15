@@ -9,8 +9,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MAX_IMAGE_DIMENSION = 1600
-MIN_IMAGE_DIMENSION = 1000
+MAX_IMAGE_DIMENSION = 2400
+MIN_IMAGE_DIMENSION = 1400
 PDF_OCR_MATRIX = fitz.Matrix(3, 3)
 
 
@@ -25,9 +25,9 @@ class OCRService:
 
     def _preprocess_image(self, image: Image.Image) -> Image.Image:
         image = image.convert('L')
-        image = ImageEnhance.Contrast(image).enhance(2.0)
-        image = ImageEnhance.Sharpness(image).enhance(2.0)
-        image = image.filter(ImageFilter.SHARPEN)
+        image = image.filter(ImageFilter.MedianFilter(size=3))
+        image = ImageEnhance.Contrast(image).enhance(1.5)
+        image = ImageEnhance.Sharpness(image).enhance(1.5)
         return image
 
     def _resize_image(self, image: Image.Image) -> Image.Image:
@@ -56,13 +56,27 @@ class OCRService:
     def _extract_text(self, image: Image.Image) -> str:
         reader = self._get_reader()
         np_image = np.array(image)
-        results = reader.readtext(np_image)
+        results = reader.readtext(np_image, paragraph=False, detail=1)
 
         if not results:
             return ''
 
         results.sort(key=lambda r: r[0][0][1])
-        text = '\n'.join(result[1] for result in results)
+        lines = []
+        current_line = [results[0]]
+        for r in results[1:]:
+            y_current = r[0][0][1]
+            y_prev = current_line[-1][0][0][1]
+            if abs(y_current - y_prev) <= 10:
+                current_line.append(r)
+            else:
+                current_line.sort(key=lambda x: x[0][0][0])
+                lines.append(' '.join(item[1] for item in current_line))
+                current_line = [r]
+        current_line.sort(key=lambda x: x[0][0][0])
+        lines.append(' '.join(item[1] for item in current_line))
+
+        text = '\n'.join(lines)
         logger.info(f"EasyOCR extraiu {len(results)} blocos de texto")
         return text
 
